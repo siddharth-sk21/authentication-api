@@ -42,7 +42,22 @@ app.get("/profile",async (req,res)=>{
 catch(err){
         res.status(500).json({err:`Database Error`});
 }
+});
 
+app.get("/admin", (req,res)=>{
+    
+    if(!req.session.userId){
+        return res.status(401).json({error:`Please login to Continue through the page`});
+    }
+    const role = req.session.role;
+    if(role=='user'){
+       return res.status(403).json({error:`Access denied for the user`});
+    }
+    else if(role=='admin'){
+       return res.status(200).json({error:`Welcome to Page`});
+    }
+
+    return res.status(403).json({error:`Invalid role`});
 });
 
 app.post("/register",async (req,res)=>{
@@ -69,7 +84,7 @@ app.post("/login",async (req,res)=>{
             return res.status(400).json({error:"Missing email or password"});
         }
         const user = await db.query(
-            `SELECT id,password FROM users
+            `SELECT id,password,role FROM users
             WHERE email = $1`,[email]
         );
         if(user.rowCount===0){
@@ -77,9 +92,11 @@ app.post("/login",async (req,res)=>{
         }
         const userId = user.rows[0].id;
         const storedHash = user.rows[0].password;
+        const role = user.rows[0].role;
         const validUser = await bcrypt.compare(password,storedHash);
         if(validUser){
             req.session.userId = userId;
+            req.session.role = role;
             return res.status(200).json({message:"Login Successful"});
         }
          return res.status(401).json({message:"Login Unsuccessful"});
