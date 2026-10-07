@@ -3,12 +3,43 @@ import express from "express";
 import pg from "pg";
 import bcrypt from "bcrypt";
 import session from "express-session";
+import passport from "passport";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 
 const app = express();
 const port = 3000;
 const saltRounds = 10;
 
 app.use(express.json()); 
+app.use(passport.initialize());
+
+passport.use(
+    new GoogleStrategy(
+        {
+            clientID: process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+            callbackURL: "http://localhost:3000/auth/google/callback"
+        },
+        async (accessToken, refreshToken, profile, done) => {
+            const email = profile.emails[0].value;
+            let user = await db.query(
+                `SELECT id,role FROM users
+                 WHERE email = $1`,[email]
+            );
+            if(user.rowCount===0){
+                user = await db.query(
+                    `INSERT INTO users (name,email)
+                    VALUES ($1,$2)
+                    RETURNING id,role`,[profile.displayName,email]
+                );
+            }
+            const id = user.rows[0].id;
+            const role = user.rows[0].role;
+
+            done(null, {id,role});
+        }
+    )
+);
 
 app.use(
     session({
@@ -25,6 +56,26 @@ const db = new pg.Pool({
     password:process.env.DB_PASSWORD,
     port:process.env.DB_PORT
 });
+
+app.get("/auth/google",
+    passport.authenticate("google",{
+        scope:["profile","email"]
+    })
+);
+
+app.get("/auth/google/callback",
+    passport.authenticate("google",{
+        failureRedirect:"/login",
+        session:false
+    }),
+    (req,res)=>{
+        req.session.userId= req.user.id;
+        req.session.role = req.user.role;
+        res.json({
+            message:"Google login successful"
+        });
+    }
+);
 
 app.get("/profile",async (req,res)=>{
     try{
