@@ -1,48 +1,49 @@
 # Authentication API
 
-A backend authentication system built with **Node.js, Express, PostgreSQL, bcrypt, and express-session**.
-
-This project was built as a hands-on implementation to understand how authentication works under the hood rather than relying entirely on authentication libraries.
+A backend authentication system built with **Node.js, Express, PostgreSQL, bcrypt, Passport.js, and Google OAuth 2.0**.
 
 ## Features
 
-- User registration
+- User registration and login
 - Password hashing with bcrypt
-- User login
 - Session-based authentication
 - Protected routes
-- User profile endpoint
-- Logout
+- Role-based authorization (User/Admin)
+- Google OAuth 2.0 login
+- Automatic Google user creation
+- Logout and session destruction
 - PostgreSQL database integration
 - Environment variable configuration
-- Basic input validation
-- Parameterized SQL queries
 
 ## Tech Stack
 
-- **Node.js**
-- **Express.js**
-- **PostgreSQL**
-- **bcrypt**
-- **express-session**
-- **dotenv**
-- **Postman** for API testing
+- Node.js
+- Express.js
+- PostgreSQL
+- bcrypt
+- express-session
+- Passport.js
+- Google OAuth 2.0
+- Postman
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/register` | Register a new user |
+| POST | `/login` | Login with email/password |
+| GET | `/profile` | Get authenticated user's profile |
+| GET | `/admin` | Admin-only route |
+| POST | `/logout` | Logout and destroy session |
+| GET | `/auth/google` | Login with Google |
+| GET | `/auth/google/callback` | Google OAuth callback |
 
 ## Authentication Flow
 
 ```text
-Register
-   ↓
-Password hashed with bcrypt
-   ↓
-Stored in PostgreSQL
-   ↓
-Login
-   ↓
-Password verified with bcrypt
-   ↓
-Session created
-   ↓
-Session cookie stored by browser
-   ↓
-Protected routes identify the user
+Email/Password ──┐
+                 ├──> Express Session ──> Protected Routes
+Google OAuth ────┘
+                         │
+                         ├── /profile
+                         └── /admin
